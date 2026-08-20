@@ -25,7 +25,7 @@ Tests -> project(s) under test
 
 ## Technology stack
 
-- C# with .NET 8 LTS and nullable reference types enabled
+- C# with .NET 10 and nullable reference types enabled
 - WPF with CommunityToolkit.Mvvm
 - Microsoft.Extensions.DependencyInjection, Configuration, Options, HttpClient, and Logging
 - SQLite via EF Core for metadata, settings, and optional chat history

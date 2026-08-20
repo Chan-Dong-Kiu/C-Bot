@@ -4,7 +4,7 @@
 
 FPTEnglishRAG là ứng dụng WPF hỗ trợ sinh viên ôn tiếng Anh đầu vào Đại học FPT. Điểm cốt lõi là RAG: hệ thống nhập tài liệu được cấp phép, tách thành đoạn, tạo embedding, truy xuất các đoạn liên quan rồi mới yêu cầu Gemini tạo câu trả lời có dẫn nguồn. Đây không phải chatbot gửi thẳng câu hỏi tới Gemini.
 
-Quyết định thiết kế: .NET 8, WPF/MVVM, SQLite cho dữ liệu quan hệ và vector cục bộ, Gemini cho embedding và sinh câu trả lời. Giải pháp ưu tiên chạy local, ít dịch vụ phải cài, dễ debug/demo và đủ đường nâng cấp sang vector database chuyên dụng.
+Quyết định thiết kế: .NET 10, WPF/MVVM, SQLite cho dữ liệu quan hệ và vector cục bộ, Gemini cho embedding và sinh câu trả lời. Giải pháp ưu tiên chạy local, ít dịch vụ phải cài, dễ debug/demo và đủ đường nâng cấp sang vector database chuyên dụng.
 
 ## 2. Mục tiêu
 
@@ -63,7 +63,7 @@ Các quyết định cần ghi ADR: ADR-001 solution layers; ADR-002 SQLite vect
 
 | Mảng | Lựa chọn | Lý do |
 |---|---|---|
-| Runtime | .NET 8 LTS, C# | ổn định, DI/config tốt, phù hợp WPF |
+| Runtime | .NET 10, C# | ổn định, DI/config tốt, phù hợp WPF |
 | UI | WPF + CommunityToolkit.Mvvm | giảm boilerplate, test ViewModel dễ |
 | Metadata | EF Core + SQLite | một file, migration rõ, demo dễ |
 | PDF/TXT | PdfPig + built-in text reader | thuần .NET, đủ MVP |
@@ -311,7 +311,7 @@ File [`AGENTS.md`](./AGENTS.md) đi kèm là quy tắc nguồn duy nhất cho co
 1. Problem, audience, screenshots và RAG value proposition.
 2. MVP features / non-goals.
 3. Architecture diagram và project dependencies.
-4. Prerequisites (.NET 8, Windows, Gemini key).
+4. Prerequisites (.NET 10, Windows, Gemini key).
 5. Setup: clone, user-secrets/env, restore, migrate, run.
 6. Import licensed sample docs và first question.
 7. Configuration table không chứa giá trị secret.
@@ -420,7 +420,7 @@ Bằng chứng RAG: hiển thị retrieved chunks/scores, citations ánh xạ đ
 
 ### Day 1 Implementation Plan
 
-1. Chốt MVP/non-goals, tên solution, .NET 8 SDK và owner bốn vertical slices (45 phút).
+1. Chốt MVP/non-goals, tên solution, .NET 10 SDK và owner bốn vertical slices (45 phút).
 2. Tạo Git repository và `.gitignore` chuẩn Visual Studio; bật branch protection sau push đầu (30 phút).
 3. Scaffold solution/projects và references (60 phút):
 
@@ -428,12 +428,12 @@ Bằng chứng RAG: hiển thị retrieved chunks/scores, citations ánh xạ đ
 git init
 dotnet new gitignore
 dotnet new sln -n FPTEnglishRAG
-dotnet new classlib -n FPTEnglishRAG.Domain -o src/FPTEnglishRAG.Domain -f net8.0
-dotnet new classlib -n FPTEnglishRAG.Application -o src/FPTEnglishRAG.Application -f net8.0
-dotnet new classlib -n FPTEnglishRAG.Infrastructure -o src/FPTEnglishRAG.Infrastructure -f net8.0
-dotnet new wpf -n FPTEnglishRAG.Wpf -o src/FPTEnglishRAG.Wpf -f net8.0
-dotnet new xunit -n FPTEnglishRAG.UnitTests -o tests/FPTEnglishRAG.UnitTests -f net8.0
-dotnet new xunit -n FPTEnglishRAG.IntegrationTests -o tests/FPTEnglishRAG.IntegrationTests -f net8.0
+dotnet new classlib -n FPTEnglishRAG.Domain -o src/FPTEnglishRAG.Domain -f net10.0
+dotnet new classlib -n FPTEnglishRAG.Application -o src/FPTEnglishRAG.Application -f net10.0
+dotnet new classlib -n FPTEnglishRAG.Infrastructure -o src/FPTEnglishRAG.Infrastructure -f net10.0
+dotnet new wpf -n FPTEnglishRAG.Wpf -o src/FPTEnglishRAG.Wpf -f net10.0
+dotnet new xunit -n FPTEnglishRAG.UnitTests -o tests/FPTEnglishRAG.UnitTests -f net10.0
+dotnet new xunit -n FPTEnglishRAG.IntegrationTests -o tests/FPTEnglishRAG.IntegrationTests -f net10.0
 dotnet sln add (Get-ChildItem -Recurse -Filter *.csproj)
 dotnet add src/FPTEnglishRAG.Application reference src/FPTEnglishRAG.Domain
 dotnet add src/FPTEnglishRAG.Infrastructure reference src/FPTEnglishRAG.Application src/FPTEnglishRAG.Domain
