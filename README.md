@@ -1,6 +1,6 @@
 # FPTEnglishRAG (english-entry-rag-chatbot-assistant)
 
-FPTEnglishRAG is a Windows desktop learning assistant designed for students preparing for the FPT University English entry assessment. Built with WPF, .NET 8, SQLite, and Google Gemini API, it provides a retrieval-augmented generation (RAG) pipeline to deliver accurate, document-grounded answers with source citations.
+FPTEnglishRAG is a Windows desktop learning assistant designed for students preparing for the FPT University English entry assessment. Built with WPF, .NET 10, SQLite, and Google Gemini API, it provides a retrieval-augmented generation (RAG) pipeline to deliver accurate, document-grounded answers with source citations.
 
 ---
 
@@ -24,7 +24,7 @@ FPTEnglishRAG.Wpf -> FPTEnglishRAG.Application -> FPTEnglishRAG.Domain
 FPTEnglishRAG.Infrastructure -> FPTEnglishRAG.Application + FPTEnglishRAG.Domain
 ```
 
-- **Framework**: .NET 8 LTS (C# with Nullable Reference Types enabled)
+- **Framework**: .NET 10 LTS (C# with Nullable Reference Types enabled)
 - **UI Layer**: WPF + `CommunityToolkit.Mvvm`
 - **Database & Persistence**: SQLite + Entity Framework Core
 - **PDF Processing**: `PdfPig`
@@ -37,7 +37,7 @@ FPTEnglishRAG.Infrastructure -> FPTEnglishRAG.Application + FPTEnglishRAG.Domain
 
 ### Prerequisites
 
-- [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
 - Visual Studio 2022 / Rider / VS Code with C# Dev Kit
 - Google Gemini API Key
 
