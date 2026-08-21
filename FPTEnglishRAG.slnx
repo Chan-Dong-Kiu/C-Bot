@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/FPTEnglishRAG.Application/FPTEnglishRAG.Application.csproj" />
+    <Project Path="src/FPTEnglishRAG.Domain/FPTEnglishRAG.Domain.csproj" />
+    <Project Path="src/FPTEnglishRAG.Infrastructure/FPTEnglishRAG.Infrastructure.csproj" />
+    <Project Path="src/FPTEnglishRAG.Wpf/FPTEnglishRAG.Wpf.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/FPTEnglishRAG.IntegrationTests/FPTEnglishRAG.IntegrationTests.csproj" />
+    <Project Path="tests/FPTEnglishRAG.UnitTests/FPTEnglishRAG.UnitTests.csproj" />
+  </Folder>
+</Solution>
