@@ -1,0 +1,45 @@
+Viết EmbeddingService (Application/Services/EmbeddingService.cs hoặc theo đúng thư mục Services đã có trong solution), implement IEmbeddingService đã định nghĩa ở Bước 1, ĐỒNG THỜI viết Unit Test tương ứng trong cùng phản hồi. Tuân thủ AGENTS.md (Application không chứa logic HTTP, không log secret, đây là điểm giao nhau trực tiếp với module Retrieval của Người 3 nên interface phải ổn định).
+
+PHẦN 1 — IMPLEMENTATION
+
+1. Class EmbeddingService : IEmbeddingService
+   - Constructor nhận IGeminiClient (đã có từ Bước 3) qua DI — KHÔNG tự new, không gọi HTTP trực tiếp trong class này.
+   - Method EmbedQueryAsync(string text, CancellationToken ct):
+     a. Validate input: nếu text null/rỗng/chỉ chứa whitespace, throw ArgumentException rõ ràng ngay tại đây (không để lỗi mơ hồ xảy ra sau khi đã gọi Gemini).
+     b. Gọi geminiClient.EmbedContentAsync(new GeminiEmbedRequest(text), ct).
+     c. Trả về response.Vector (float[]) từ GeminiEmbedResponse.
+     d. Không bắt/nuốt exception ở đây — để các exception phân loại từ GeminiClient (Bước 3) propagate nguyên trạng lên tầng gọi (RetrievalService của Người 3, hoặc GeminiService nếu cần embed trong luồng khác).
+
+2. Đăng ký DI: services.AddScoped<IEmbeddingService, EmbeddingService>() (hoặc lifetime nhất quán với GeminiService) trong Infrastructure/DependencyInjection.cs, đặt cạnh dòng đăng ký FakeEmbeddingService đã có từ Bước 2, dùng cùng flag cấu hình để chọn fake/thật, không xoá dòng đăng ký fake.
+
+3. Ghi rõ trong XML doc: đây là interface dùng chung với module Retrieval (Người 3) để embed câu hỏi tại thời điểm truy vấn — không dùng để embed tài liệu lúc import (phần đó thuộc Document Processing của Người 2/3), tránh nhầm lẫn phạm vi trách nhiệm.
+
+PHẦN 2 — UNIT TEST
+
+Đặt tại FPTEnglishRAG.UnitTests/Application/Services/EmbeddingServiceTests.cs. Dùng xUnit + FluentAssertions + Moq. Mock IGeminiClient, không gọi mạng thật.
+
+Viết các test case sau, mỗi case 1 method riêng đặt tên dạng EmbedQueryAsync_Condition_ExpectedResult:
+
+1. EmbedQueryAsync_WhenTextValid_ReturnsVectorFromClient
+   - Setup mock geminiClient.EmbedContentAsync trả về GeminiEmbedResponse với Vector giả cố định (ví dụ float[] 5 phần tử để dễ assert).
+   - Assert: kết quả trả về đúng bằng vector đó; mock được gọi đúng 1 lần với đúng text truyền vào.
+
+2. EmbedQueryAsync_WhenTextIsNullOrWhitespace_ThrowsArgumentException (Theory với InlineData null, "", "   ")
+   - Assert: throw ArgumentException; mock geminiClient.EmbedContentAsync KHÔNG được gọi (Verify Times.Never) — vì validate phải chặn trước khi gọi client.
+
+3. EmbedQueryAsync_WhenClientThrowsGeminiRateLimitException_PropagatesException
+   - Setup mock ném GeminiRateLimitException.
+   - Assert: exception được propagate nguyên trạng ra ngoài, không bị EmbeddingService bắt/nuốt/đổi loại.
+
+4. EmbedQueryAsync_WhenCancellationRequested_PassesCancellationTokenToClient
+   - Truyền CancellationToken cụ thể (không cần cancel sẵn).
+   - Assert: mock geminiClient.EmbedContentAsync được gọi với đúng CancellationToken đó (dùng It.Is<CancellationToken>(t => t == ct) trong Verify), đảm bảo token được truyền xuyên suốt không bị thay bằng CancellationToken.None.
+
+5. EmbedQueryAsync_PassesExactTextToClient_WithoutModification
+   - Input text có khoảng trắng đầu/cuối hoặc ký tự đặc biệt.
+   - Assert: mock geminiClient.EmbedContentAsync được gọi với đúng text nguyên văn đã truyền vào EmbedQueryAsync (xác nhận EmbeddingService không tự ý trim/normalize làm sai lệch input mà không có yêu cầu rõ ràng nào cho việc đó).
+
+Yêu cầu chung:
+- Mỗi test độc lập, không phụ thuộc thứ tự chạy.
+- Không test nào gọi mạng thật.
+- Ghi rõ file path đầy đủ trước khi in code (cả implementation lẫn test).

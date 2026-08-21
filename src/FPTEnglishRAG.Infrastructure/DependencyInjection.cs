@@ -62,11 +62,8 @@ public static class DependencyInjection
             // Register Real GeminiService alongside the Fake registration comments
             services.AddScoped<IGeminiService, GeminiService>();
 
-            // TODO (Step 9): Uncomment when EmbeddingService is ready
-            // services.AddScoped<IEmbeddingService, EmbeddingService>();
-
-            // Remove this fake once EmbeddingService is implemented
-            services.AddSingleton<IEmbeddingService, FakeEmbeddingService>();
+            // Register Real EmbeddingService
+            services.AddScoped<IEmbeddingService, EmbeddingService>();
             
             // Real PromptBuilder
             services.AddSingleton<IPromptBuilder, FPTEnglishRAG.Application.Services.PromptBuilder>();
