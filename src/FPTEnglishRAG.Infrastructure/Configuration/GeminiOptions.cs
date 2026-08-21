@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace FPTEnglishRAG.Infrastructure.Configuration;
 
@@ -88,4 +88,22 @@ public sealed class GeminiOptions
     /// </summary>
     [Range(64, 8192)]
     public int MaxOutputTokens { get; set; } = 2048;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether fake implementations of
+    /// <c>IGeminiService</c> and <c>IEmbeddingService</c> should be registered
+    /// instead of the real HTTP-backed ones.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Set to <see langword="true"/> in <c>appsettings.Development.json</c> or via the
+    /// <c>Gemini__UseFake=true</c> environment variable to develop or test without a live
+    /// Gemini API key.
+    /// </para>
+    /// <para>
+    /// This flag must never be <see langword="true"/> in a production configuration file.
+    /// The default is <see langword="false"/> so production is safe even if the setting is absent.
+    /// </para>
+    /// </remarks>
+    public bool UseFake { get; set; } = false;
 }
