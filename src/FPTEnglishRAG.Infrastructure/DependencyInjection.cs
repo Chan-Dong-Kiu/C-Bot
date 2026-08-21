@@ -1,4 +1,4 @@
-﻿// File: src/FPTEnglishRAG.Infrastructure/DependencyInjection.cs
+// File: src/FPTEnglishRAG.Infrastructure/DependencyInjection.cs
 
 using System.Net.Http;
 using FPTEnglishRAG.Application.Abstractions;
@@ -68,8 +68,10 @@ public static class DependencyInjection
             // Remove this fake once EmbeddingService is implemented
             services.AddSingleton<IEmbeddingService, FakeEmbeddingService>();
             
-            // To prevent runtime crashes while Stubs for Step 7 and 8 are not yet replaced:
-            services.AddSingleton<IPromptBuilder, FPTEnglishRAG.Application.Services.Stubs.StubPromptBuilder>();
+            // Real PromptBuilder
+            services.AddSingleton<IPromptBuilder, FPTEnglishRAG.Application.Services.PromptBuilder>();
+            
+            // To prevent runtime crashes while Stubs for Step 8 are not yet replaced:
             services.AddSingleton<ICitationValidator, FPTEnglishRAG.Application.Services.Stubs.StubCitationValidator>();
         }
 
