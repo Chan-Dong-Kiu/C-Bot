@@ -1,0 +1,23 @@
+Viết GeminiService (Application/Services/GeminiService.cs hoặc theo đúng thư mục Services đã có trong solution), implement IGeminiService đã định nghĩa ở Bước 1, ghép nối IGeminiClient (Bước 3), IPromptBuilder (chưa viết — chỉ khai báo dependency, sẽ implement ở Bước 7), ICitationValidator (chưa viết — chỉ khai báo dependency, sẽ implement ở Bước 8). Tuân thủ AGENTS.md (Application không phụ thuộc infrastructure cụ thể ngoài qua interface, dependency injection qua constructor, không chứa logic HTTP).
+
+Yêu cầu:
+
+1. Class GeminiService : IGeminiService
+   - Constructor nhận IGeminiClient, IPromptBuilder, ICitationValidator, và ILogger<GeminiService> (nếu solution đã dùng chuẩn logging này) qua DI — không new trực tiếp bất kỳ dependency nào.
+   - Method GenerateAnswerAsync(ChatAnswerRequest request, CancellationToken ct):
+     a. Kiểm tra điều kiện "grounded" TRƯỚC khi gọi Gemini: nếu request.RetrievedChunks rỗng hoặc không có phần tử nào có SimilarityScore >= request.RelevanceThreshold, trả về ngay ChatAnswerResult.NotGrounded() — KHÔNG gọi IGeminiClient trong trường hợp này (tiết kiệm chi phí API và tránh trả lời không có căn cứ).
+     b. Nếu đủ điều kiện, gọi promptBuilder.Build(request) để tạo prompt.
+     c. Gọi geminiClient.GenerateContentAsync(...) với prompt vừa build, truyền ct.
+     d. Bắt các exception phân loại đã định nghĩa ở Bước 3 (GeminiAuthenticationException, GeminiRateLimitException, GeminiTransientException, GeminiInvalidRequestException, GeminiUnexpectedException) — với mỗi loại, log structured (không log secret) và rethrow dưới dạng exception nghiệp vụ ở tầng Application nếu solution đã có kiểu exception domain-level riêng, hoặc rethrow nguyên trạng nếu chưa có, nhưng phải ghi rõ TODO nếu cần domain exception riêng sau này.
+     e. Nếu gọi thành công, dùng citationValidator.ValidateAndMap(response text, request.RetrievedChunks) để lấy danh sách Citation hợp lệ (loại bỏ nhãn model tự bịa không tồn tại trong RetrievedChunks).
+     f. Trả về ChatAnswerResult mới với Answer = text từ response, Citations = danh sách đã validate, IsGrounded = true.
+
+2. Không viết logic build prompt hay validate citation trực tiếp trong class này — chỉ gọi qua 2 interface đã inject, giữ GeminiService là lớp điều phối (orchestrator) thuần, không phải nơi chứa toàn bộ logic.
+
+3. Đăng ký DI trong Infrastructure/DependencyInjection.cs (hoặc file tương ứng): services.AddScoped<IGeminiService, GeminiService>() (hoặc lifetime phù hợp theo convention đã dùng cho các service khác trong solution) — đặt cạnh dòng đăng ký FakeGeminiService đã có từ Bước 2, dùng flag cấu hình để chọn 1 trong 2, không xoá dòng đăng ký fake.
+
+Yêu cầu chung:
+- Ghi rõ file path đầy đủ trước mỗi đoạn code.
+- Thêm XML doc cho class và method public, đặc biệt giải thích rõ lý do check threshold trước khi gọi Gemini.
+- Không viết implementation thật cho IPromptBuilder/ICitationValidator ở bước này — chỉ dùng qua interface, class thật sẽ viết ở Bước 7 và Bước 8. Nếu cần compile được ngay, có thể tạo stub implementation tạm (throw NotImplementedException) và ghi rõ đây là placeholder chờ Bước 7/8.
+- Không viết unit test ở bước này — test cho GeminiService (mock 3 dependency, test luồng threshold, test luồng thành công, test luồng exception) thuộc Bước 10.

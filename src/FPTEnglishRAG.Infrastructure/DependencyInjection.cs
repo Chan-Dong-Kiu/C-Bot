@@ -55,25 +55,22 @@ public static class DependencyInjection
             {
                 var options = sp.GetRequiredService<IOptions<GeminiOptions>>().Value;
                 client.BaseAddress = new Uri(options.Endpoint.TrimEnd('/') + "/");
-                
-                // Use the Timeout configured for Generation as the baseline HTTP timeout.
-                // We use TimeoutSeconds (which is for generation) because it's usually longer.
-                // The per-request timeout differences (generation vs embedding) should ideally be 
-                // controlled via CancellationTokens inside the GeminiClient methods, 
-                // but setting this prevents indefinite hangs.
                 client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
             })
             .AddPolicyHandler((sp, request) => GeminiHttpPolicy.GetRetryPolicy(sp));
 
-            // TODO (Step 6): Uncomment when GeminiService is ready
-            // services.AddScoped<IGeminiService, GeminiService>();
+            // Register Real GeminiService alongside the Fake registration comments
+            services.AddScoped<IGeminiService, GeminiService>();
 
             // TODO (Step 9): Uncomment when EmbeddingService is ready
             // services.AddScoped<IEmbeddingService, EmbeddingService>();
 
-            // Remove these fakes once real services are implemented above
-            services.AddSingleton<IGeminiService, FakeGeminiService>();
+            // Remove this fake once EmbeddingService is implemented
             services.AddSingleton<IEmbeddingService, FakeEmbeddingService>();
+            
+            // To prevent runtime crashes while Stubs for Step 7 and 8 are not yet replaced:
+            services.AddSingleton<IPromptBuilder, FPTEnglishRAG.Application.Services.Stubs.StubPromptBuilder>();
+            services.AddSingleton<ICitationValidator, FPTEnglishRAG.Application.Services.Stubs.StubCitationValidator>();
         }
 
         return services;
