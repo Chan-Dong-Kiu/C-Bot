@@ -1,0 +1,26 @@
+Cấu hình retry và timeout cho Gemini HTTP client bằng Polly, tách hoàn toàn khỏi business logic của GeminiClient (đã viết ở Bước 3), tuân thủ AGENTS.md (exponential backoff + jitter, chỉ retry lỗi tạm thời, không retry lỗi authentication/validation).
+
+Yêu cầu:
+
+1. Đăng ký HttpClient cho IGeminiClient trong Infrastructure/DependencyInjection.cs (hoặc file DI tương ứng đã có trong solution), dùng AddHttpClient<IGeminiClient, GeminiClient>():
+   - Set BaseAddress từ GeminiOptions.Endpoint (đọc qua IOptions<GeminiOptions>, không hard-code).
+   - Set Timeout từ GeminiOptions.TimeoutSeconds (dùng riêng cho generation) — nếu cần timeout khác cho embedding, cân nhắc dùng named HttpClient thứ hai hoặc field riêng, ghi rõ lựa chọn và lý do trong comment.
+   - Gắn thêm policy handler retry (bước 2 dưới đây) qua .AddPolicyHandler(...).
+
+2. Viết policy retry dùng Polly (Microsoft.Extensions.Http.Polly hoặc Polly.Extensions.Http tuỳ package đã có sẵn trong solution, kiểm tra trước khi thêm mới):
+   - HandleTransientHttpError() để bắt lỗi mạng và mã 5xx phù hợp.
+   - OrResult để bắt thêm status code 429 (Too Many Requests).
+   - WaitAndRetryAsync với số lần retry đọc từ GeminiOptions.MaxRetries (không hard-code số 3), delay tính theo exponential backoff (2^retryAttempt giây) cộng thêm jitter ngẫu nhiên (0–500ms) để tránh nhiều request retry cùng lúc dồn tải.
+   - Tôn trọng header Retry-After nếu Gemini trả về trong response 429 — nếu có header này, ưu tiên dùng giá trị đó thay vì delay tính toán mặc định.
+   - KHÔNG retry các status code 400, 401, 403 — để các lỗi này fail ngay lập tức, propagate lên để GeminiClient map thành đúng loại exception đã định nghĩa ở Bước 3 (GeminiAuthenticationException, GeminiInvalidRequestException).
+
+3. Log lại mỗi lần retry xảy ra (structured log): số lần đã thử, status code gây retry, thời gian chờ trước lần thử tiếp theo. Không log API key hay nội dung request/response đầy đủ trong log retry này.
+
+4. Đảm bảo CancellationToken được tôn trọng xuyên suốt policy — nếu người dùng huỷ thao tác (ví dụ đóng app hoặc huỷ câu hỏi) trong lúc đang chờ retry, phải dừng ngay, không tiếp tục retry ngầm.
+
+5. Nếu package Polly cần thiết chưa có trong solution, liệt kê rõ package NuGet cần thêm (ví dụ Microsoft.Extensions.Http.Polly) và version tương thích .NET 8, không tự ý thêm package khác ngoài phạm vi retry/timeout này.
+
+Yêu cầu chung:
+- Ghi rõ file path đầy đủ trước mỗi đoạn code.
+- Không viết lại logic serialize/deserialize hay xử lý response trong file này — chỉ cấu hình pipeline HttpClient, phần đó đã thuộc về GeminiClient ở Bước 3.
+- Không viết unit test ở bước này — test cho retry policy (đúng số lần, đúng loại lỗi mới retry, tôn trọng CancellationToken) thuộc Bước 10, dùng fake HttpMessageHandler.
