@@ -1,3 +1,5 @@
 <Solution>
-  <Project Path="GroupProject.RAG/GroupProject.RAG.csproj" />
+  <Project Path="GroupProject.RAG\GroupProject.RAG.csproj" />
+  <Project Path="src\FPTEnglishRAG.Application\FPTEnglishRAG.Application.csproj" />
+  <Project Path="src\FPTEnglishRAG.Infrastructure\FPTEnglishRAG.Infrastructure.csproj" />
 </Solution>
