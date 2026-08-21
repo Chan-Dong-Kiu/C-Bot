@@ -1,0 +1,14 @@
+﻿{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "This is a mocked Gemini response."
+          }
+        ]
+      },
+      "finishReason": "STOP"
+    }
+  ]
+}

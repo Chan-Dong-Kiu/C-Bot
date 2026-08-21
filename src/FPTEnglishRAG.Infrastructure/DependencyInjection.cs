@@ -71,8 +71,8 @@ public static class DependencyInjection
             // Real PromptBuilder
             services.AddSingleton<IPromptBuilder, FPTEnglishRAG.Application.Services.PromptBuilder>();
             
-            // To prevent runtime crashes while Stubs for Step 8 are not yet replaced:
-            services.AddSingleton<ICitationValidator, FPTEnglishRAG.Application.Services.Stubs.StubCitationValidator>();
+            // Real CitationValidator
+            services.AddSingleton<ICitationValidator, FPTEnglishRAG.Application.Services.CitationValidator>();
         }
 
         return services;

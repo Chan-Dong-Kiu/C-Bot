@@ -20,4 +20,8 @@
     <ProjectReference Include="..\FPTEnglishRAG.Application\FPTEnglishRAG.Application.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="FPTEnglishRAG.UnitTests" />
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
+  </ItemGroup>
 </Project>
