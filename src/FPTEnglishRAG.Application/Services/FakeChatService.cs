@@ -1,7 +1,7 @@
 using FPTEnglishRAG.Application.Abstractions;
 using FPTEnglishRAG.Application.DTOs;
 using FPTEnglishRAG.Domain.Entities;
-using FPTEnglishRAG.Domain.ValueObjects;
+using Citation = FPTEnglishRAG.Domain.ValueObjects.Citation;
 
 namespace FPTEnglishRAG.Application.Services;
 

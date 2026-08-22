@@ -7,7 +7,7 @@
 .env
 
 # Local application settings and SQLite data
-appsettings.Local.json
+**/appsettings.Local.json
 appsettings.*.local.json
 *.db
 *.sqlite

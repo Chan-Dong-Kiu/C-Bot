@@ -4,5 +4,5 @@ namespace FPTEnglishRAG.Application.DTOs;
 
 public record ChatAnswer(
     string Text,
-    IReadOnlyList<Citation> Citations,
+    IReadOnlyList<FPTEnglishRAG.Domain.ValueObjects.Citation> Citations,
     bool IsGrounded);
