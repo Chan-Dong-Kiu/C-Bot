@@ -1,11 +1,15 @@
-﻿using System.IO;
+using System.IO;
 using System.Windows;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using FPTEnglishRAG.Application.Abstractions;
 using FPTEnglishRAG.Application.Abstractions.Documents;
 using FPTEnglishRAG.Application.Abstractions.Persistence;
+using FPTEnglishRAG.Application.Configuration;
 using FPTEnglishRAG.Application.Services;
+using FPTEnglishRAG.Infrastructure;
+using FPTEnglishRAG.Infrastructure.DependencyInjection;
 using FPTEnglishRAG.Infrastructure.Documents.Chunking;
 using FPTEnglishRAG.Infrastructure.Documents.Cleaning;
 using FPTEnglishRAG.Infrastructure.Documents.Extraction;
@@ -20,22 +24,62 @@ namespace FPTEnglishRAG.Wpf;
 public partial class App : System.Windows.Application
 {
     private readonly IServiceProvider _serviceProvider;
+    private readonly IConfiguration _configuration;
 
     public App()
     {
         InitializeComponent();
-        var services = new ServiceCollection();
-        ConfigureServices(services);
-        _serviceProvider = services.BuildServiceProvider();
+        
+        try
+        {
+            // Build Configuration
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(AppContext.BaseDirectory)
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true)
+                .AddEnvironmentVariables();
+                
+            _configuration = builder.Build();
+
+            var services = new ServiceCollection();
+            ConfigureServices(services, _configuration);
+            _serviceProvider = services.BuildServiceProvider();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"L\u1ed7i nghi\u00eam tr\u1ecdng khi t\u1ea1o DI Container:\n\n{ex}", "L\u1ed7i Kh\u1edfi \u0111\u1ed9ng", MessageBoxButton.OK, MessageBoxImage.Error);
+            Environment.Exit(1);
+        }
     }
 
-    private static void ConfigureServices(IServiceCollection services)
+    private static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
+        // 0. Add Core Configuration
+        services.AddSingleton(configuration);
+        
+        var ragOptions = configuration.GetSection("Rag").Get<RagOptions>() ?? new RagOptions();
+        services.AddSingleton(ragOptions);
+
+        var retrievalOptions = configuration.GetSection("Rag").Get<RetrievalOptions>() ?? new RetrievalOptions();
+        
+        // Register Infrastructure extensions from Person 3 & 4
+        services.AddInfrastructure(configuration);
+        services.AddVectorRetrieval(retrievalOptions);
+        services.AddQuestionGroundingPolicy();
+
         // 1. In-Memory Session Store
         services.AddSingleton<IChatSessionStore, InMemoryChatSessionStore>();
 
         // 2. Chat Service
-        services.AddSingleton<IChatService, FakeChatService>();
+        var useFake = configuration.GetSection("Gemini").GetValue<bool>("UseFake");
+        if (useFake)
+        {
+            services.AddSingleton<IChatService, FakeChatService>();
+        }
+        else
+        {
+            services.AddSingleton<IChatService, ChatService>();
+        }
 
         var appDataDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -71,15 +115,23 @@ public partial class App : System.Windows.Application
     {
         base.OnStartup(e);
 
-        using (var scope = _serviceProvider.CreateScope())
+        try
         {
-            var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<DocumentDbContext>>();
-            using var db = dbFactory.CreateDbContext();
-            // TODO: thay bằng EF Core Migrations trước khi merge vào main, theo AGENTS.md - Database migrations are committed and reviewed
-            db.Database.EnsureCreated();
-        }
+            using (var scope = _serviceProvider.CreateScope())
+            {
+                var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<DocumentDbContext>>();
+                using var db = dbFactory.CreateDbContext();
+                // TODO: thay b?ng EF Core Migrations tru?c khi merge vo main, theo AGENTS.md - Database migrations are committed and reviewed
+                db.Database.EnsureCreated();
+            }
 
-        var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
-        mainWindow.Show();
+            var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
+            mainWindow.Show();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"L\u1ed7i nghi\u00eam tr\u1ecdng khi kh\u1edfi \u0111\u1ed9ng:\n\n{ex}", "L\u1ed7i Kh\u1edfi \u0111\u1ed9ng", MessageBoxButton.OK, MessageBoxImage.Error);
+            Current.Shutdown();
+        }
     }
 }
