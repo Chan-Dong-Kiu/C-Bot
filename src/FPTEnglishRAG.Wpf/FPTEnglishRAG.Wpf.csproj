@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\FPTEnglishRAG.Application\FPTEnglishRAG.Application.csproj" />
@@ -20,6 +20,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <UserSecretsId>1d00051d-e08f-43f7-a89e-21952588c9c5</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
