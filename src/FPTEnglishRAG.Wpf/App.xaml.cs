@@ -30,18 +30,26 @@ public partial class App : System.Windows.Application
     {
         InitializeComponent();
         
-        // Build Configuration
-        var builder = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true)
-            .AddEnvironmentVariables();
-            
-        _configuration = builder.Build();
+        try
+        {
+            // Build Configuration
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(AppContext.BaseDirectory)
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true)
+                .AddEnvironmentVariables();
+                
+            _configuration = builder.Build();
 
-        var services = new ServiceCollection();
-        ConfigureServices(services, _configuration);
-        _serviceProvider = services.BuildServiceProvider();
+            var services = new ServiceCollection();
+            ConfigureServices(services, _configuration);
+            _serviceProvider = services.BuildServiceProvider();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"L\u1ed7i nghi\u00eam tr\u1ecdng khi t\u1ea1o DI Container:\n\n{ex}", "L\u1ed7i Kh\u1edfi \u0111\u1ed9ng", MessageBoxButton.OK, MessageBoxImage.Error);
+            Environment.Exit(1);
+        }
     }
 
     private static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
@@ -107,15 +115,23 @@ public partial class App : System.Windows.Application
     {
         base.OnStartup(e);
 
-        using (var scope = _serviceProvider.CreateScope())
+        try
         {
-            var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<DocumentDbContext>>();
-            using var db = dbFactory.CreateDbContext();
-            // TODO: thay b?ng EF Core Migrations tru?c khi merge vo main, theo AGENTS.md - Database migrations are committed and reviewed
-            db.Database.EnsureCreated();
-        }
+            using (var scope = _serviceProvider.CreateScope())
+            {
+                var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<DocumentDbContext>>();
+                using var db = dbFactory.CreateDbContext();
+                // TODO: thay b?ng EF Core Migrations tru?c khi merge vo main, theo AGENTS.md - Database migrations are committed and reviewed
+                db.Database.EnsureCreated();
+            }
 
-        var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
-        mainWindow.Show();
+            var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
+            mainWindow.Show();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"L\u1ed7i nghi\u00eam tr\u1ecdng khi kh\u1edfi \u0111\u1ed9ng:\n\n{ex}", "L\u1ed7i Kh\u1edfi \u0111\u1ed9ng", MessageBoxButton.OK, MessageBoxImage.Error);
+            Current.Shutdown();
+        }
     }
 }

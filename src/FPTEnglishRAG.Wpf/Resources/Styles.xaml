@@ -108,7 +108,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource CardHoverBrush}" />
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource CardHoverBgBrush}" />
                             <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
@@ -234,7 +234,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource CardHoverBrush}" />
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource CardHoverBgBrush}" />
                             <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">

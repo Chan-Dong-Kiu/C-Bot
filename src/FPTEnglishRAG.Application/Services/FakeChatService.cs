@@ -69,7 +69,7 @@ public class FakeChatService : IChatService
         };
 
         var answerText =
-            $"Dựa vào tài liệu ôn tập tiếng Anh đầu vào [S1], cấu trúc câu điều kiện loại 2 được dùng để diễn tả một giả định không có thật ở hiện tại:\n\n" +
+            $"[Fake] Dựa vào tài liệu ôn tập tiếng Anh đầu vào [S1], cấu trúc câu điều kiện loại 2 được dùng để diễn tả một giả định không có thật ở hiện tại:\n\n" +
             $"• **Mệnh đề If**: `If + S + V-ed/V2` (với to be dùng `were` cho mọi ngôi).\n" +
             $"• **Mệnh đề chính**: `S + would / could + V (nguyên thể)` [S1].\n\n" +
             $"Ví dụ cụ thể từ giáo trình [S2]: *\"If I had a million dollars, I would travel around the world.\"*\n\n" +
