@@ -37,9 +37,17 @@ public partial class App : System.Windows.Application
                 .SetBasePath(AppContext.BaseDirectory)
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                 .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true)
-                .AddEnvironmentVariables();
+                .AddEnvironmentVariables()
+                .AddUserSecrets<App>();
                 
             _configuration = builder.Build();
+
+            // Override Gemini:ApiKey if GEMINI_API_KEY env var is present (per AGENTS.md rule)
+            var envApiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY");
+            if (!string.IsNullOrWhiteSpace(envApiKey))
+            {
+                _configuration["Gemini:ApiKey"] = envApiKey;
+            }
 
             var services = new ServiceCollection();
             ConfigureServices(services, _configuration);
