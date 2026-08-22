@@ -8,5 +8,5 @@ public sealed class EmbeddingEntity
     public byte[] Vector { get; set; } = Array.Empty<byte>();
     public string IndexVersion { get; set; } = string.Empty;
     public DateTimeOffset CreatedAt { get; set; }
-    public ChunkEntity Chunk { get; set; } = null!;
+    public FPTEnglishRAG.Domain.Entities.DocumentChunk Chunk { get; set; } = null!;
 }

@@ -2,10 +2,10 @@ namespace FPTEnglishRAG.Domain.Enums;
 
 public enum DocumentStatus
 {
-    Pending,
-    Extracting,
-    Chunking,
-    Embedding,
-    Ready,
-    Failed
+    Pending = 0,
+    Extracting = 1,
+    Chunking = 2,
+    Embedding = 3,
+    Ready = 4,
+    Failed = 5
 }

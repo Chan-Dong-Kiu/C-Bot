@@ -1,3 +1,4 @@
+using System.IO;
 using FPTEnglishRAG.Infrastructure.VectorStore;
 
 namespace FPTEnglishRAG.UnitTests.VectorStore;

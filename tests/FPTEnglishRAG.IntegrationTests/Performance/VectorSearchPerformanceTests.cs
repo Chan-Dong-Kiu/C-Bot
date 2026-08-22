@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using FPTEnglishRAG.Application.DTOs;
+using FPTEnglishRAG.Domain.Entities;
 using FPTEnglishRAG.Domain.Enums;
 using FPTEnglishRAG.Infrastructure.Persistence.Entities;
 using FPTEnglishRAG.Infrastructure.VectorStore;
@@ -24,7 +25,7 @@ public sealed class VectorSearchPerformanceTests
         await using (var context = database.CreateDbContext())
         {
             context.ChangeTracker.AutoDetectChangesEnabled = false;
-            var document = new DocumentEntity
+            var document = new Document
             {
                 Id = documentId,
                 DisplayName = "Retrieval benchmark",
@@ -33,14 +34,16 @@ public sealed class VectorSearchPerformanceTests
                 Sha256 = new string('a', 64),
                 Status = DocumentStatus.Ready,
                 PageCount = 1,
-                CreatedAt = DateTimeOffset.UtcNow,
-                UpdatedAt = DateTimeOffset.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
+
+            var embeddings = new List<EmbeddingEntity>(VectorCount);
 
             for (int index = 0; index < VectorCount; index++)
             {
                 Guid chunkId = Guid.NewGuid();
-                document.Chunks.Add(new ChunkEntity
+                document.Chunks.Add(new DocumentChunk
                 {
                     Id = chunkId,
                     DocumentId = documentId,
@@ -49,20 +52,21 @@ public sealed class VectorSearchPerformanceTests
                     PageEnd = 1,
                     Content = $"Benchmark chunk {index}",
                     ContentHash = $"benchmark-{index}",
-                    TokenCount = 3,
-                    Embedding = new EmbeddingEntity
-                    {
-                        ChunkId = chunkId,
-                        Model = "benchmark-model",
-                        Dimensions = Dimensions,
-                        Vector = vectorBytes,
-                        IndexVersion = "v1",
-                        CreatedAt = DateTimeOffset.UtcNow
-                    }
+                    TokenCount = 3
+                });
+                embeddings.Add(new EmbeddingEntity
+                {
+                    ChunkId = chunkId,
+                    Model = "benchmark-model",
+                    Dimensions = Dimensions,
+                    Vector = vectorBytes,
+                    IndexVersion = "v1",
+                    CreatedAt = DateTimeOffset.UtcNow
                 });
             }
 
             context.Documents.Add(document);
+            context.Embeddings.AddRange(embeddings);
             await context.SaveChangesAsync();
         }
 

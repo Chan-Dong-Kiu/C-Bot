@@ -20,27 +20,27 @@ The embedding model and dimensions are supplied by the embedding component. The 
 Register the component at the WPF composition root:
 
 ```csharp
-services.AddVectorPersistence(
-    new SqlitePersistenceOptions(),
-    new RetrievalOptions());
+services.AddDbContextFactory<DocumentDbContext>(options =>
+    options.UseSqlite(connectionString));
+services.AddVectorRetrieval(new RetrievalOptions());
 ```
 
-Resolve `IDatabaseInitializer` once during startup and call `InitializeAsync` before document or retrieval workflows. The initializer creates the local data directory and applies committed migrations; it never deletes or silently recreates the database.
+Document processing and vector retrieval intentionally share `DocumentDbContext`. The WPF composition root owns the connection string and database initialization; the vector module only registers `IVectorStore` and `IRetrievalService`.
 
 ## Migrations
 
 ```powershell
 dotnet ef migrations add <MigrationName> `
-    --project src\FPTEnglishRAG.Infrastructure\FPTEnglishRAG.Infrastructure.csproj `
-    --output-dir Persistence\Migrations
+    --context DocumentDbContext `
+    --project src\FPTEnglishRAG.Infrastructure\FPTEnglishRAG.Infrastructure.csproj
 ```
 
-Review generated SQL/schema changes and run integration tests before committing a migration.
+Create migrations only from the shared context after the team replaces the current `EnsureCreated` startup flow. Never restore the removed standalone `RagDbContext` migration because it duplicates the document tables.
 
 ## Tests
 
 ```powershell
-dotnet test FPTEnglishRAG.slnx
+dotnet test GroupProject.slnx
 ```
 
 The default suite is offline. Integration tests use SQLite in-memory or a unique temporary database. The performance test indexes 10,000 vectors with 768 dimensions and requires search to complete in under 500 milliseconds on the development machine.

@@ -4,29 +4,29 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FPTEnglishRAG.IntegrationTests.Persistence;
 
-internal sealed class SqliteTestDatabase : IDbContextFactory<RagDbContext>, IAsyncDisposable
+internal sealed class SqliteTestDatabase : IDbContextFactory<DocumentDbContext>, IAsyncDisposable
 {
     private readonly SqliteConnection _connection = new("Data Source=:memory:");
-    private DbContextOptions<RagDbContext>? _options;
+    private DbContextOptions<DocumentDbContext>? _options;
 
     public async Task InitializeAsync()
     {
         await _connection.OpenAsync();
-        _options = new DbContextOptionsBuilder<RagDbContext>()
+        _options = new DbContextOptionsBuilder<DocumentDbContext>()
             .UseSqlite(_connection)
             .Options;
 
-        await using RagDbContext context = CreateDbContext();
-        await context.Database.MigrateAsync();
+        await using DocumentDbContext context = CreateDbContext();
+        await context.Database.EnsureCreatedAsync();
     }
 
-    public RagDbContext CreateDbContext()
+    public DocumentDbContext CreateDbContext()
     {
-        return new RagDbContext(
+        return new DocumentDbContext(
             _options ?? throw new InvalidOperationException("Test database is not initialized."));
     }
 
-    public Task<RagDbContext> CreateDbContextAsync(
+    public Task<DocumentDbContext> CreateDbContextAsync(
         CancellationToken cancellationToken = default)
     {
         return Task.FromResult(CreateDbContext());

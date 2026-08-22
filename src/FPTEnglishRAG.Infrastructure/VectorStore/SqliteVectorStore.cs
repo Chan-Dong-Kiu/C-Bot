@@ -7,12 +7,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FPTEnglishRAG.Infrastructure.VectorStore;
 
-public sealed class SqliteVectorStore(IDbContextFactory<RagDbContext> contextFactory) : IVectorStore
+public sealed class SqliteVectorStore(IDbContextFactory<DocumentDbContext> contextFactory) : IVectorStore
 {
     public async Task UpsertAsync(VectorRecord record, CancellationToken cancellationToken = default)
     {
         ValidateRecord(record);
-        await using RagDbContext context = await contextFactory.CreateDbContextAsync(cancellationToken);
+        await using DocumentDbContext context = await contextFactory.CreateDbContextAsync(cancellationToken);
 
         bool chunkExists = await context.Chunks
             .AnyAsync(chunk => chunk.Id == record.ChunkId, cancellationToken);
@@ -56,18 +56,19 @@ public sealed class SqliteVectorStore(IDbContextFactory<RagDbContext> contextFac
         ValidateRequest(request);
         int dimensions = request.QueryVector.Length;
 
-        await using RagDbContext context = await contextFactory.CreateDbContextAsync(cancellationToken);
+        await using DocumentDbContext context = await contextFactory.CreateDbContextAsync(cancellationToken);
         List<StoredVectorCandidate> candidates = await context.Embeddings
             .AsNoTracking()
             .Where(embedding =>
                 embedding.Model == request.Model &&
                 embedding.Dimensions == dimensions &&
                 embedding.IndexVersion == request.IndexVersion &&
+                embedding.Chunk.Document != null &&
                 embedding.Chunk.Document.Status == DocumentStatus.Ready)
             .Select(embedding => new StoredVectorCandidate(
                 embedding.ChunkId,
                 embedding.Chunk.DocumentId,
-                embedding.Chunk.Document.DisplayName,
+                embedding.Chunk.Document!.DisplayName,
                 embedding.Chunk.Ordinal,
                 embedding.Chunk.PageStart,
                 embedding.Chunk.PageEnd,
@@ -108,7 +109,7 @@ public sealed class SqliteVectorStore(IDbContextFactory<RagDbContext> contextFac
         Guid documentId,
         CancellationToken cancellationToken = default)
     {
-        await using RagDbContext context = await contextFactory.CreateDbContextAsync(cancellationToken);
+        await using DocumentDbContext context = await contextFactory.CreateDbContextAsync(cancellationToken);
         await context.Embeddings
             .Where(embedding => embedding.Chunk.DocumentId == documentId)
             .ExecuteDeleteAsync(cancellationToken);

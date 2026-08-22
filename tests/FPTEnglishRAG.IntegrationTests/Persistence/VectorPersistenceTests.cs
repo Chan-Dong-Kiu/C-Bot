@@ -11,11 +11,11 @@ namespace FPTEnglishRAG.IntegrationTests.Persistence;
 public sealed class VectorPersistenceTests
 {
     [Fact]
-    public async Task Migration_CreatesExpectedTables()
+    public async Task DatabaseInitialization_CreatesExpectedTables()
     {
         await using var database = new SqliteTestDatabase();
         await database.InitializeAsync();
-        await using RagDbContext context = database.CreateDbContext();
+        await using DocumentDbContext context = database.CreateDbContext();
 
         string[] tables = await context.Database
             .SqlQueryRaw<string>(
@@ -33,7 +33,7 @@ public sealed class VectorPersistenceTests
     {
         await using var database = new SqliteTestDatabase();
         await database.InitializeAsync();
-        var repository = new DocumentRepository(database);
+        var repository = new SqliteDocumentRepository(database);
         var vectorStore = new SqliteVectorStore(database);
         Document document = CreateDocument(DocumentStatus.Ready, chunkCount: 3);
         await repository.AddAsync(document);
@@ -57,7 +57,7 @@ public sealed class VectorPersistenceTests
     {
         await using var database = new SqliteTestDatabase();
         await database.InitializeAsync();
-        var repository = new DocumentRepository(database);
+        var repository = new SqliteDocumentRepository(database);
         var vectorStore = new SqliteVectorStore(database);
         Document document = CreateDocument(DocumentStatus.Embedding, chunkCount: 1);
         await repository.AddAsync(document);
@@ -74,7 +74,7 @@ public sealed class VectorPersistenceTests
     {
         await using var database = new SqliteTestDatabase();
         await database.InitializeAsync();
-        var repository = new DocumentRepository(database);
+        var repository = new SqliteDocumentRepository(database);
         var vectorStore = new SqliteVectorStore(database);
         Document document = CreateDocument(DocumentStatus.Ready, chunkCount: 1);
         await repository.AddAsync(document);
@@ -82,7 +82,7 @@ public sealed class VectorPersistenceTests
 
         await repository.DeleteAsync(document.Id);
 
-        await using RagDbContext context = database.CreateDbContext();
+        await using DocumentDbContext context = database.CreateDbContext();
         Assert.Equal(0, await context.Documents.CountAsync());
         Assert.Equal(0, await context.Chunks.CountAsync());
         Assert.Equal(0, await context.Embeddings.CountAsync());
@@ -93,19 +93,20 @@ public sealed class VectorPersistenceTests
     {
         await using var database = new SqliteTestDatabase();
         await database.InitializeAsync();
-        var repository = new DocumentRepository(database);
+        var repository = new SqliteDocumentRepository(database);
         Document document = CreateDocument(DocumentStatus.Pending, chunkCount: 1);
         await repository.AddAsync(document);
 
-        Assert.True(await repository.ExistsByHashAsync(document.Sha256));
+        Assert.NotNull(await repository.GetBySha256Async(document.Sha256));
         Assert.Single(await repository.GetAllAsync());
 
-        await repository.UpdateStatusAsync(document.Id, DocumentStatus.Failed, "EMBEDDING_FAILED");
+        document.MarkFailed(DocumentErrorCode.EmbeddingFailed, "Embedding failed.");
+        await repository.UpdateAsync(document);
         Document? updated = await repository.GetByIdAsync(document.Id);
 
         Assert.NotNull(updated);
         Assert.Equal(DocumentStatus.Failed, updated.Status);
-        Assert.Equal("EMBEDDING_FAILED", updated.ErrorCode);
+        Assert.Equal(DocumentErrorCode.EmbeddingFailed.ToString(), updated.ErrorCode);
     }
 
     [Fact]
@@ -113,7 +114,7 @@ public sealed class VectorPersistenceTests
     {
         await using var database = new SqliteTestDatabase();
         await database.InitializeAsync();
-        var repository = new DocumentRepository(database);
+        var repository = new SqliteDocumentRepository(database);
         var vectorStore = new SqliteVectorStore(database);
         Document document = CreateDocument(DocumentStatus.Ready, chunkCount: 1);
         Guid chunkId = document.Chunks.Single().Id;
@@ -128,7 +129,7 @@ public sealed class VectorPersistenceTests
 
         Assert.Empty(oldDirection);
         Assert.Single(newDirection);
-        await using RagDbContext context = database.CreateDbContext();
+        await using DocumentDbContext context = database.CreateDbContext();
         Assert.Equal(1, await context.Embeddings.CountAsync());
     }
 
@@ -137,7 +138,7 @@ public sealed class VectorPersistenceTests
     {
         await using var database = new SqliteTestDatabase();
         await database.InitializeAsync();
-        var repository = new DocumentRepository(database);
+        var repository = new SqliteDocumentRepository(database);
         var vectorStore = new SqliteVectorStore(database);
         Document document = CreateDocument(DocumentStatus.Ready, chunkCount: 2);
         DocumentChunk[] chunks = document.Chunks.ToArray();
@@ -158,7 +159,7 @@ public sealed class VectorPersistenceTests
     {
         await using var database = new SqliteTestDatabase();
         await database.InitializeAsync();
-        var repository = new DocumentRepository(database);
+        var repository = new SqliteDocumentRepository(database);
         var vectorStore = new SqliteVectorStore(database);
         Document document = CreateDocument(DocumentStatus.Ready, chunkCount: 1);
         await repository.AddAsync(document);
@@ -166,7 +167,7 @@ public sealed class VectorPersistenceTests
 
         await vectorStore.DeleteByDocumentIdAsync(document.Id);
 
-        await using RagDbContext context = database.CreateDbContext();
+        await using DocumentDbContext context = database.CreateDbContext();
         Assert.Equal(1, await context.Documents.CountAsync());
         Assert.Equal(1, await context.Chunks.CountAsync());
         Assert.Equal(0, await context.Embeddings.CountAsync());
@@ -181,27 +182,33 @@ public sealed class VectorPersistenceTests
     {
         Guid documentId = Guid.NewGuid();
         DocumentChunk[] chunks = Enumerable.Range(0, chunkCount)
-            .Select(index => new DocumentChunk(
-                Guid.NewGuid(),
-                index,
-                pageStart: 1,
-                pageEnd: 1,
-                section: "Grammar",
-                content: $"English grammar chunk {index}",
-                contentHash: $"hash-{documentId:N}-{index}",
-                tokenCount: 10))
+            .Select(index => new DocumentChunk
+            {
+                Id = Guid.NewGuid(),
+                DocumentId = documentId,
+                Ordinal = index,
+                PageStart = 1,
+                PageEnd = 1,
+                Section = "Grammar",
+                Content = $"English grammar chunk {index}",
+                ContentHash = $"hash-{documentId:N}-{index}",
+                TokenCount = 10
+            })
             .ToArray();
 
-        return new Document(
-            documentId,
-            "Grammar guide",
-            "documents/grammar.pdf",
-            "application/pdf",
-            documentId.ToString("N").PadRight(64, '0'),
-            status,
-            pageCount: 1,
-            createdAt: DateTimeOffset.UtcNow,
-            updatedAt: DateTimeOffset.UtcNow,
-            chunks);
+        return new Document
+        {
+            Id = documentId,
+            DisplayName = "Grammar guide",
+            StoredPath = "documents/grammar.pdf",
+            MimeType = "application/pdf",
+            Sha256 = documentId.ToString("N").PadRight(64, '0'),
+            Status = status,
+            PageCount = 1,
+            ChunkCount = chunkCount,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            Chunks = chunks
+        };
     }
 }
