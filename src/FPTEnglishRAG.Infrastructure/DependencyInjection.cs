@@ -14,7 +14,7 @@ namespace FPTEnglishRAG.Infrastructure;
 /// <summary>
 /// Extension methods for registering Infrastructure services in the DI container.
 /// </summary>
-public static class DependencyInjection
+public static class InfrastructureServiceCollectionExtensions
 {
     /// <summary>
     /// Registers Gemini and Embedding services - either fake or real - based on configuration.

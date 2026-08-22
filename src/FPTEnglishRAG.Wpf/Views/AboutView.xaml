@@ -1,0 +1,113 @@
+<UserControl x:Class="FPTEnglishRAG.Wpf.Views.AboutView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="800"
+             Background="{StaticResource AppBgBrush}">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="32">
+        <StackPanel MaxWidth="720" HorizontalAlignment="Center">
+            <!-- Header -->
+            <Border Width="64" Height="64"
+                    Background="{StaticResource PrimaryMutedBrush}"
+                    BorderBrush="{StaticResource PrimaryHoverBrush}"
+                    BorderThickness="1"
+                    CornerRadius="32"
+                    HorizontalAlignment="Center"
+                    Margin="0,0,0,16">
+                <Path Data="{StaticResource IconInfo}"
+                      Fill="{StaticResource PrimaryLightBrush}"
+                      Width="28" Height="28"
+                      Stretch="Uniform"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center" />
+            </Border>
+
+            <TextBlock Text="{Binding AppName}"
+                       FontFamily="{StaticResource DisplayFontFamily}"
+                       FontSize="{StaticResource FontSize2Xl}"
+                       FontWeight="Bold"
+                       Foreground="{StaticResource TextPrimaryBrush}"
+                       HorizontalAlignment="Center" />
+
+            <TextBlock Text="{Binding Version, StringFormat='Phiên bản {0}'}"
+                       FontSize="{StaticResource FontSizeSm}"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource PrimaryLightBrush}"
+                       HorizontalAlignment="Center"
+                       Margin="0,4,0,12" />
+
+            <TextBlock Text="{Binding Description}"
+                       FontSize="{StaticResource FontSizeBase}"
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       HorizontalAlignment="Center"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap"
+                       Margin="0,0,0,24" />
+
+            <!-- Architecture Cards -->
+            <Border Background="{StaticResource CardBgBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="20"
+                    Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="🏛️ Kiến trúc Clean Architecture (.NET 10 + WPF MVVM)"
+                               FontWeight="Bold"
+                               FontSize="{StaticResource FontSizeMd}"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               Margin="0,0,0,12" />
+
+                    <TextBlock Text="• FPTEnglishRAG.Domain: Entities, Enums, Value Objects, Domain Rules."
+                               FontSize="{StaticResource FontSizeSm}"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Margin="0,0,0,6" />
+                    <TextBlock Text="• FPTEnglishRAG.Application: Use Cases, DTOs, Abstractions (IChatService, IChatSessionStore), Validation."
+                               FontSize="{StaticResource FontSizeSm}"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Margin="0,0,0,6" />
+                    <TextBlock Text="• FPTEnglishRAG.Infrastructure: Gemini API Client, PdfPig Document Parser, SQLite EF Core &amp; Vector Store."
+                               FontSize="{StaticResource FontSizeSm}"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Margin="0,0,0,6" />
+                    <TextBlock Text="• FPTEnglishRAG.Wpf: Presentation Layer (Views, ViewModels với CommunityToolkit.Mvvm, Composition Root)."
+                               FontSize="{StaticResource FontSizeSm}"
+                               Foreground="{StaticResource TextSecondaryBrush}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Team Responsibilities -->
+            <Border Background="{StaticResource CardBgBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="20">
+                <StackPanel>
+                    <TextBlock Text="👥 Phân công nhiệm vụ nhóm (4 thành viên):"
+                               FontWeight="Bold"
+                               FontSize="{StaticResource FontSizeMd}"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               Margin="0,0,0,12" />
+
+                    <TextBlock Text="1. Người 1 (WPF/MVVM/Chat): Shell Navigation, Chat UI, InMemoryChatSessionStore, Citations badge, FakeChatService &amp; Unit Tests."
+                               FontSize="{StaticResource FontSizeSm}"
+                               Foreground="{StaticResource SuccessBrush}"
+                               Margin="0,0,0,6" />
+                    <TextBlock Text="2. Người 2 (Documents &amp; Chunking): Document extraction (PdfPig, TXT), Normalization, Chunker 500/75, Documents UI."
+                               FontSize="{StaticResource FontSizeSm}"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Margin="0,0,0,6" />
+                    <TextBlock Text="3. Người 3 (Retrieval &amp; Vector Store): SQLite DB &amp; Vector Cosine Similarity Search, Top-K, Relevance Threshold filtering."
+                               FontSize="{StaticResource FontSizeSm}"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Margin="0,0,0,6" />
+                    <TextBlock Text="4. Người 4 (Gemini Integration &amp; RAG): Gemini REST Client, Ingestion pipeline, Prompt Grounding, RagChatService &amp; Citations."
+                               FontSize="{StaticResource FontSizeSm}"
+                               Foreground="{StaticResource TextSecondaryBrush}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
