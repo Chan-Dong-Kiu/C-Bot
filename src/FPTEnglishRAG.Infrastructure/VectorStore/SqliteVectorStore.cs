@@ -81,10 +81,9 @@ public sealed class SqliteVectorStore(IDbContextFactory<DocumentDbContext> conte
         return candidates
             .Select(embedding =>
             {
-                float[] vector = FloatVectorSerializer.Deserialize(
-                    embedding.Vector,
-                    embedding.Dimensions);
-                double score = CosineSimilarity.Calculate(request.QueryVector.Span, vector);
+                double score = CosineSimilarity.CalculateSerialized(
+                    request.QueryVector.Span,
+                    embedding.Vector);
 
                 return new VectorSearchResult(
                     embedding.ChunkId,

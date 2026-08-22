@@ -4,6 +4,7 @@ using FPTEnglishRAG.Application.Abstractions;
 using FPTEnglishRAG.Application.DTOs;
 using FPTEnglishRAG.Infrastructure.AI.Exceptions;
 using FPTEnglishRAG.Infrastructure.Configuration;
+using FPTEnglishRAG.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -61,10 +62,11 @@ internal sealed class GeminiService : IGeminiService
         ArgumentNullException.ThrowIfNull(request);
 
         // a. Check grounded condition FIRST before calling Gemini
-        bool hasRelevantChunks = request.RetrievedChunks.Count > 0 && 
+        bool hasRelevantChunks = request.RetrievedChunks.Count > 0 &&
                                  request.RetrievedChunks.Any(c => c.SimilarityScore >= request.RelevanceThreshold);
 
-        if (!hasRelevantChunks)
+        if (request.GroundingMode == AnswerGroundingMode.InsufficientSources ||
+            (request.GroundingMode == AnswerGroundingMode.Grounded && !hasRelevantChunks))
         {
             _logger.LogInformation("No relevant chunks found meeting the threshold {Threshold}. Returning NotGrounded.", request.RelevanceThreshold);
             return ChatAnswerResult.NotGrounded();
@@ -94,7 +96,7 @@ internal sealed class GeminiService : IGeminiService
             // we should map these infrastructure exceptions to domain exceptions here to avoid leaking infra concerns.
             // For now, rethrowing as-is.
             _logger.LogError(ex, "Gemini API failed during GenerateAnswerAsync. ErrorType={ErrorType}", ex.GetType().Name);
-            
+
             switch (ex)
             {
                 case GeminiAuthenticationException:
@@ -109,12 +111,14 @@ internal sealed class GeminiService : IGeminiService
         }
 
         // e. Validate and map citations based on model output
-        var citations = _citationValidator.ValidateAndMap(geminiResponse.Text, request.RetrievedChunks);
+        IReadOnlyList<Citation> citations = request.GroundingMode == AnswerGroundingMode.Grounded
+            ? _citationValidator.ValidateAndMap(geminiResponse.Text, request.RetrievedChunks)
+            : Array.Empty<Citation>();
 
         // f. Return grounded result
         return new ChatAnswerResult(
             Answer: geminiResponse.Text,
             Citations: citations,
-            IsGrounded: true);
+            IsGrounded: request.GroundingMode == AnswerGroundingMode.Grounded);
     }
 }

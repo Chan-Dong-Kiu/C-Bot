@@ -29,7 +29,7 @@ public partial class App : System.Windows.Application
     public App()
     {
         InitializeComponent();
-        
+
         try
         {
             // Build Configuration
@@ -39,7 +39,7 @@ public partial class App : System.Windows.Application
                 .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true)
                 .AddEnvironmentVariables()
                 .AddUserSecrets<App>();
-                
+
             _configuration = builder.Build();
 
             // Override Gemini:ApiKey if GEMINI_API_KEY env var is present (per AGENTS.md rule)
@@ -64,12 +64,27 @@ public partial class App : System.Windows.Application
     {
         // 0. Add Core Configuration
         services.AddSingleton(configuration);
-        
+
         var ragOptions = configuration.GetSection("Rag").Get<RagOptions>() ?? new RagOptions();
         services.AddSingleton(ragOptions);
 
-        var retrievalOptions = configuration.GetSection("Rag").Get<RetrievalOptions>() ?? new RetrievalOptions();
-        
+        var retrievalOptions = new RetrievalOptions
+        {
+            TopK = ragOptions.TopK,
+            Threshold = ragOptions.RelevanceThreshold
+        };
+        var knowledgeOptions = configuration
+            .GetSection(ChatKnowledgeOptions.SectionName)
+            .Get<ChatKnowledgeOptions>() ?? new ChatKnowledgeOptions();
+        var vectorIndexOptions = new VectorIndexOptions
+        {
+            EmbeddingModel = configuration["Gemini:EmbeddingModel"] ?? string.Empty,
+            IndexVersion = configuration["Rag:IndexVersion"] ?? "v1"
+        };
+        vectorIndexOptions.Validate();
+        services.AddSingleton(knowledgeOptions);
+        services.AddSingleton(vectorIndexOptions);
+
         // Register Infrastructure extensions from Person 3 & 4
         services.AddInfrastructure(configuration);
         services.AddVectorRetrieval(retrievalOptions);

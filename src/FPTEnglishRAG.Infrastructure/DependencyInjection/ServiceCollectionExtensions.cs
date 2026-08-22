@@ -26,8 +26,8 @@ public static class ServiceCollectionExtensions
         retrievalOptions.Validate();
 
         services.AddSingleton(retrievalOptions);
-        services.AddScoped<IVectorStore, SqliteVectorStore>();
-        services.AddScoped<IRetrievalService, RetrievalService>();
+        services.AddSingleton<IVectorStore, SqliteVectorStore>();
+        services.AddSingleton<IRetrievalService, RetrievalService>();
 
         return services;
     }

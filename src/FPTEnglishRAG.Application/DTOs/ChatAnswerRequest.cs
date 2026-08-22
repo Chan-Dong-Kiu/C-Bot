@@ -1,3 +1,5 @@
+using FPTEnglishRAG.Domain.Enums;
+
 namespace FPTEnglishRAG.Application.DTOs;
 
 /// <summary>
@@ -7,8 +9,10 @@ namespace FPTEnglishRAG.Application.DTOs;
 /// <param name="RetrievedChunks">The retrieved source chunks for the current question.</param>
 /// <param name="RecentMessages">A bounded snapshot of recent conversation messages.</param>
 /// <param name="RelevanceThreshold">The minimum retrieval score required for grounded answering.</param>
+/// <param name="GroundingMode">Whether generation must use sources or may use labeled general knowledge.</param>
 public sealed record ChatAnswerRequest(
     string Question,
     IReadOnlyList<RetrievedChunk> RetrievedChunks,
     IReadOnlyList<ChatMessageSnapshot> RecentMessages,
-    double RelevanceThreshold);
+    double RelevanceThreshold,
+    AnswerGroundingMode GroundingMode = AnswerGroundingMode.Grounded);

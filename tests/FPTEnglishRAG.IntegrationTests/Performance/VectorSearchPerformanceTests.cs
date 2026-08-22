@@ -71,9 +71,18 @@ public sealed class VectorSearchPerformanceTests
         }
 
         var vectorStore = new SqliteVectorStore(database);
+        var request = new VectorSearchRequest(
+            vector,
+            "benchmark-model",
+            "v1",
+            TopK: 5,
+            Threshold: 0.7);
+
+        // Exclude one-time EF query compilation and SQLite initialization from the retrieval target.
+        await vectorStore.SearchAsync(request);
+
         var stopwatch = Stopwatch.StartNew();
-        IReadOnlyList<VectorSearchResult> results = await vectorStore.SearchAsync(
-            new VectorSearchRequest(vector, "benchmark-model", "v1", TopK: 5, Threshold: 0.7));
+        IReadOnlyList<VectorSearchResult> results = await vectorStore.SearchAsync(request);
         stopwatch.Stop();
 
         Assert.Equal(5, results.Count);

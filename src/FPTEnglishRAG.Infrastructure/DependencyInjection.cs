@@ -50,7 +50,6 @@ public static class InfrastructureServiceCollectionExtensions
         }
         else
         {
-            // Register IGeminiClient with typed HttpClient and Polly policies
             services.AddHttpClient<IGeminiClient, GeminiClient>((sp, client) =>
             {
                 var options = sp.GetRequiredService<IOptions<GeminiOptions>>().Value;
@@ -59,15 +58,12 @@ public static class InfrastructureServiceCollectionExtensions
             })
             .AddPolicyHandler((sp, request) => GeminiHttpPolicy.GetRetryPolicy(sp));
 
-            // Register Real GeminiService alongside the Fake registration comments
             services.AddScoped<IGeminiService, GeminiService>();
+            services.AddTransient<IEmbeddingService, EmbeddingService>();
 
-            // Register Real EmbeddingService
-            services.AddScoped<IEmbeddingService, EmbeddingService>();
-            
             // Real PromptBuilder
             services.AddSingleton<IPromptBuilder, FPTEnglishRAG.Application.Services.PromptBuilder>();
-            
+
             // Real CitationValidator
             services.AddSingleton<ICitationValidator, FPTEnglishRAG.Application.Services.CitationValidator>();
         }

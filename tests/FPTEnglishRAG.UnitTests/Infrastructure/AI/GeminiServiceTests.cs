@@ -10,6 +10,7 @@ using FPTEnglishRAG.Application.DTOs;
 using FPTEnglishRAG.Infrastructure.AI;
 using FPTEnglishRAG.Infrastructure.AI.Exceptions;
 using FPTEnglishRAG.Infrastructure.Configuration;
+using FPTEnglishRAG.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -90,6 +91,34 @@ public class GeminiServiceTests
     }
 
     [Fact]
+    public async Task GenerateAnswerAsync_GeneralKnowledgeWithoutChunks_CallsClientWithoutCitations()
+    {
+        var sut = CreateSut();
+        var request = CreateRequest(threshold: 0.7) with
+        {
+            GroundingMode = AnswerGroundingMode.GeneralKnowledge
+        };
+        _mockPromptBuilder.Setup(builder => builder.Build(request)).Returns("general prompt");
+        _mockClient
+            .Setup(client => client.GenerateContentAsync(
+                It.IsAny<GeminiGenerateRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GeminiGenerateResponse("General answer", "STOP"));
+
+        ChatAnswerResult result = await sut.GenerateAnswerAsync(request, CancellationToken.None);
+
+        result.Answer.Should().Be("General answer");
+        result.IsGrounded.Should().BeFalse();
+        result.Citations.Should().BeEmpty();
+        _mockClient.Verify(client => client.GenerateContentAsync(
+            It.IsAny<GeminiGenerateRequest>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+        _mockCitationValidator.Verify(validator => validator.ValidateAndMap(
+            It.IsAny<string>(),
+            It.IsAny<IReadOnlyList<RetrievedChunk>>()), Times.Never);
+    }
+
+    [Fact]
     public async Task GenerateAnswerAsync_WhenAllChunksBelowThreshold_ReturnsNotGroundedWithoutCallingClient()
     {
         // Arrange
@@ -112,7 +141,7 @@ public class GeminiServiceTests
         // Arrange
         var sut = CreateSut();
         var request = CreateRequest(threshold: 0.7, chunkScores: new[] { 0.5, 0.75 });
-        
+
         var expectedPrompt = "Test prompt";
         _mockPromptBuilder.Setup(x => x.Build(request)).Returns(expectedPrompt);
 
@@ -129,9 +158,9 @@ public class GeminiServiceTests
 
         // Assert
         _mockPromptBuilder.Verify(x => x.Build(request), Times.Once);
-        
+
         _mockClient.Verify(x => x.GenerateContentAsync(
-            It.Is<GeminiGenerateRequest>(r => r.Prompt == expectedPrompt && r.Model == "test-model"), 
+            It.Is<GeminiGenerateRequest>(r => r.Prompt == expectedPrompt && r.Model == "test-model"),
             It.IsAny<CancellationToken>()), Times.Once);
 
         result.IsGrounded.Should().BeTrue();
@@ -145,7 +174,7 @@ public class GeminiServiceTests
         // Arrange
         var sut = CreateSut();
         var request = CreateRequest(threshold: 0.5, chunkScores: new[] { 0.8 });
-        
+
         _mockClient.Setup(x => x.GenerateContentAsync(It.IsAny<GeminiGenerateRequest>(), It.IsAny<CancellationToken>()))
                    .ThrowsAsync(new GeminiAuthenticationException("Auth failed"));
 
@@ -155,7 +184,7 @@ public class GeminiServiceTests
         // Assert
         await act.Should().ThrowAsync<GeminiAuthenticationException>();
         _mockCitationValidator.Verify(
-            x => x.ValidateAndMap(It.IsAny<string>(), It.IsAny<IReadOnlyList<RetrievedChunk>>()), 
+            x => x.ValidateAndMap(It.IsAny<string>(), It.IsAny<IReadOnlyList<RetrievedChunk>>()),
             Times.Never);
     }
 
@@ -175,7 +204,7 @@ public class GeminiServiceTests
         // Assert
         await act.Should().ThrowAsync<GeminiRateLimitException>();
         _mockCitationValidator.Verify(
-            x => x.ValidateAndMap(It.IsAny<string>(), It.IsAny<IReadOnlyList<RetrievedChunk>>()), 
+            x => x.ValidateAndMap(It.IsAny<string>(), It.IsAny<IReadOnlyList<RetrievedChunk>>()),
             Times.Never);
     }
 
@@ -185,7 +214,7 @@ public class GeminiServiceTests
         // Arrange
         var sut = CreateSut();
         var request = CreateRequest(threshold: 0.5, chunkScores: new[] { 0.8 });
-        
+
         var cts = new CancellationTokenSource();
         cts.Cancel(); // Pre-cancel
 
@@ -205,7 +234,7 @@ public class GeminiServiceTests
         // Arrange
         var sut = CreateSut();
         var request = CreateRequest(threshold: 0.5, chunkScores: new[] { 0.6, 0.9, 0.8 });
-        
+
         _mockPromptBuilder.Setup(x => x.Build(request)).Returns("dummy");
         _mockClient.Setup(x => x.GenerateContentAsync(It.IsAny<GeminiGenerateRequest>(), It.IsAny<CancellationToken>()))
                    .ReturnsAsync(new GeminiGenerateResponse("Answer", "STOP"));
@@ -215,12 +244,12 @@ public class GeminiServiceTests
 
         // Assert
         _mockCitationValidator.Verify(x => x.ValidateAndMap(
-            It.IsAny<string>(), 
-            It.Is<IReadOnlyList<RetrievedChunk>>(chunks => 
-                chunks.Count == 3 && 
+            It.IsAny<string>(),
+            It.Is<IReadOnlyList<RetrievedChunk>>(chunks =>
+                chunks.Count == 3 &&
                 chunks[0].SimilarityScore == 0.6 &&
                 chunks[1].SimilarityScore == 0.9 &&
-                chunks[2].SimilarityScore == 0.8)), 
+                chunks[2].SimilarityScore == 0.8)),
             Times.Once);
     }
 }

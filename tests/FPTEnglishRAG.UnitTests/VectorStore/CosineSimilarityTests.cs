@@ -34,4 +34,17 @@ public sealed class CosineSimilarityTests
         Assert.Throws<ArgumentException>(() =>
             CosineSimilarity.Calculate([1f], [1f, 2f]));
     }
+
+    [Fact]
+    public void CalculateSerialized_MatchesFloatVectorCalculation()
+    {
+        float[] query = [0.5f, 0.5f, 0.70710677f];
+        float[] stored = [0.25f, 0.75f, 0.61237246f];
+        byte[] bytes = FloatVectorSerializer.Serialize(stored);
+
+        double expected = CosineSimilarity.Calculate(query, stored);
+        double actual = CosineSimilarity.CalculateSerialized(query, bytes);
+
+        Assert.Equal(expected, actual, precision: 12);
+    }
 }

@@ -93,11 +93,11 @@ public sealed class FakeEmbeddingService : IEmbeddingService
         seed.CopyTo(roundInput);
 
         int floatIndex = 0;
+        Span<byte> hashed = stackalloc byte[32];
         for (int round = 0; floatIndex < EmbeddingDimensions; round++)
         {
             BinaryPrimitives.WriteInt32BigEndian(roundInput[32..], round);
 
-            Span<byte> hashed = stackalloc byte[32];
             SHA256.HashData(roundInput, hashed);
 
             foreach (var b in hashed)

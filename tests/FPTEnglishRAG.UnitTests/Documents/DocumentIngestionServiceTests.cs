@@ -1,5 +1,8 @@
+using FPTEnglishRAG.Application.Abstractions;
 using FPTEnglishRAG.Application.Abstractions.Documents;
 using FPTEnglishRAG.Application.Abstractions.Persistence;
+using FPTEnglishRAG.Application.Abstractions.RAG;
+using FPTEnglishRAG.Application.Configuration;
 using FPTEnglishRAG.Application.DTOs;
 using FPTEnglishRAG.Application.Services;
 using FPTEnglishRAG.Domain.Entities;
@@ -17,6 +20,8 @@ public class DocumentIngestionServiceTests
     private readonly Mock<IChunkingService> _mockChunker;
     private readonly Mock<IFileStorageService> _mockStorage;
     private readonly Mock<IDocumentRepository> _mockRepo;
+    private readonly Mock<IEmbeddingService> _mockEmbeddingService;
+    private readonly Mock<IVectorStore> _mockVectorStore;
     private readonly DocumentIngestionService _service;
 
     public DocumentIngestionServiceTests()
@@ -27,6 +32,8 @@ public class DocumentIngestionServiceTests
         _mockChunker = new Mock<IChunkingService>();
         _mockStorage = new Mock<IFileStorageService>();
         _mockRepo = new Mock<IDocumentRepository>();
+        _mockEmbeddingService = new Mock<IEmbeddingService>();
+        _mockVectorStore = new Mock<IVectorStore>();
 
         _mockExtractor.Setup(e => e.CanHandle("application/pdf")).Returns(true);
 
@@ -36,7 +43,14 @@ public class DocumentIngestionServiceTests
             _mockNormalizer.Object,
             _mockChunker.Object,
             _mockStorage.Object,
-            _mockRepo.Object);
+            _mockRepo.Object,
+            _mockEmbeddingService.Object,
+            _mockVectorStore.Object,
+            new VectorIndexOptions
+            {
+                EmbeddingModel = "test-embedding-model",
+                IndexVersion = "test-v1"
+            });
     }
 
     [Fact]
@@ -73,6 +87,9 @@ public class DocumentIngestionServiceTests
             {
                 new(0, 1, 1, null, "Clean normalized text from page 1", "chunk_hash", 10)
             });
+        _mockEmbeddingService
+            .Setup(service => service.EmbedQueryAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new float[] { 1f, 0f });
 
         var progressReports = new List<IngestionProgressReport>();
         var progress = new Progress<IngestionProgressReport>(p => progressReports.Add(p));
@@ -83,5 +100,11 @@ public class DocumentIngestionServiceTests
         doc.PageCount.Should().Be(1);
         doc.ChunkCount.Should().Be(1);
         _mockRepo.Verify(r => r.SaveChunksAsync(doc.Id, It.IsAny<IReadOnlyList<DocumentChunk>>(), It.IsAny<CancellationToken>()), Times.Once);
+        _mockVectorStore.Verify(store => store.UpsertAsync(
+            It.Is<VectorRecord>(record =>
+                record.Model == "test-embedding-model" &&
+                record.IndexVersion == "test-v1" &&
+                record.Dimensions == 2),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 }

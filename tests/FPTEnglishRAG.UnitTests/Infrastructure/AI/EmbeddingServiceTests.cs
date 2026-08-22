@@ -51,7 +51,7 @@ public class EmbeddingServiceTests
         // Assert
         result.Should().BeEquivalentTo(expectedVector);
         _mockClient.Verify(x => x.EmbedContentAsync(
-            It.Is<GeminiEmbedRequest>(r => r.Content == text), 
+            It.Is<GeminiEmbedRequest>(r => r.Content == text),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -62,14 +62,14 @@ public class EmbeddingServiceTests
     public async Task EmbedQueryAsync_WhenTextIsNullOrWhitespace_ThrowsArgumentException(string? invalidText)
     {
         // Act
-        Func<Task> act = async () => await _sut.EmbedQueryAsync(invalidText, CancellationToken.None);
+        Func<Task> act = async () => await _sut.EmbedQueryAsync(invalidText!, CancellationToken.None);
 
         // Assert
         await act.Should().ThrowAsync<ArgumentException>()
             .WithMessage("*Query text cannot be null or whitespace.*");
 
         _mockClient.Verify(
-            x => x.EmbedContentAsync(It.IsAny<GeminiEmbedRequest>(), It.IsAny<CancellationToken>()), 
+            x => x.EmbedContentAsync(It.IsAny<GeminiEmbedRequest>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -78,7 +78,7 @@ public class EmbeddingServiceTests
     {
         // Arrange
         var text = "Hello world";
-        
+
         _mockClient
             .Setup(x => x.EmbedContentAsync(It.IsAny<GeminiEmbedRequest>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new GeminiRateLimitException("Rate limit exceeded"));
@@ -97,7 +97,7 @@ public class EmbeddingServiceTests
         var text = "Hello world";
         using var cts = new CancellationTokenSource();
         var expectedToken = cts.Token;
-        
+
         _mockClient
             .Setup(x => x.EmbedContentAsync(It.IsAny<GeminiEmbedRequest>(), expectedToken))
             .ReturnsAsync(new GeminiEmbedResponse(new float[] { 0.1f }));
@@ -107,7 +107,7 @@ public class EmbeddingServiceTests
 
         // Assert
         _mockClient.Verify(
-            x => x.EmbedContentAsync(It.IsAny<GeminiEmbedRequest>(), It.Is<CancellationToken>(t => t == expectedToken)), 
+            x => x.EmbedContentAsync(It.IsAny<GeminiEmbedRequest>(), It.Is<CancellationToken>(t => t == expectedToken)),
             Times.Once);
     }
 
@@ -116,7 +116,7 @@ public class EmbeddingServiceTests
     {
         // Arrange
         var exactText = "  Hello \n \t world  "; // Leading/trailing spaces, newlines, tabs
-        
+
         _mockClient
             .Setup(x => x.EmbedContentAsync(It.IsAny<GeminiEmbedRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new GeminiEmbedResponse(new float[] { 0.1f }));
@@ -126,7 +126,7 @@ public class EmbeddingServiceTests
 
         // Assert
         _mockClient.Verify(
-            x => x.EmbedContentAsync(It.Is<GeminiEmbedRequest>(r => r.Content == exactText), It.IsAny<CancellationToken>()), 
+            x => x.EmbedContentAsync(It.Is<GeminiEmbedRequest>(r => r.Content == exactText), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 }

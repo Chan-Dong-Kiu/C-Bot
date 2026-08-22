@@ -18,11 +18,20 @@ public sealed class ChatService : IChatService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly RagOptions _ragOptions;
+    private readonly ChatKnowledgeOptions _knowledgeOptions;
+    private readonly VectorIndexOptions _vectorIndexOptions;
 
-    public ChatService(IServiceScopeFactory scopeFactory, RagOptions ragOptions)
+    public ChatService(
+        IServiceScopeFactory scopeFactory,
+        RagOptions ragOptions,
+        ChatKnowledgeOptions knowledgeOptions,
+        VectorIndexOptions vectorIndexOptions)
     {
         _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
         _ragOptions = ragOptions ?? throw new ArgumentNullException(nameof(ragOptions));
+        _knowledgeOptions = knowledgeOptions ?? throw new ArgumentNullException(nameof(knowledgeOptions));
+        _vectorIndexOptions = vectorIndexOptions ?? throw new ArgumentNullException(nameof(vectorIndexOptions));
+        _vectorIndexOptions.Validate();
     }
 
     public async Task<ChatAnswer> AskAsync(string question, IReadOnlyList<ChatMessage> recentHistory, CancellationToken ct)
@@ -44,9 +53,12 @@ public sealed class ChatService : IChatService
         var queryVector = await embeddingService.EmbedQueryAsync(question, ct);
 
         // Retrieve chunks
-        var query = new RetrievalQuery(queryVector, "gemini-embedding-001", "v1");
+        var query = new RetrievalQuery(
+            queryVector,
+            _vectorIndexOptions.EmbeddingModel,
+            _vectorIndexOptions.IndexVersion);
         var searchResults = await retrievalService.RetrieveAsync(query, ct);
-        
+
         var retrievedChunks = searchResults.Select(r => new RetrievedChunk(
             ChunkId: r.ChunkId.ToString(),
             Content: r.Content,
@@ -59,7 +71,7 @@ public sealed class ChatService : IChatService
         var decision = groundingPolicy.Decide(
             question: question,
             hasRetrievedContext: retrievedChunks.Any(),
-            knowledgeMode: KnowledgeMode.GroundedOnly); 
+            knowledgeMode: _knowledgeOptions.Mode);
 
         if (!decision.MayCallGemini)
         {
@@ -74,12 +86,14 @@ public sealed class ChatService : IChatService
             Question: question,
             RetrievedChunks: retrievedChunks,
             RecentMessages: historySnapshots,
-            RelevanceThreshold: _ragOptions.RelevanceThreshold);
+            RelevanceThreshold: _ragOptions.RelevanceThreshold,
+            GroundingMode: decision.Mode);
 
         var answerResult = await geminiService.GenerateAnswerAsync(request, ct);
 
         // Map Citations
-        var domainCitations = answerResult.Citations.Select(dto => {
+        var domainCitations = answerResult.Citations.Select(dto =>
+        {
             var searchResult = searchResults.FirstOrDefault(r => r.ChunkId.ToString() == dto.ChunkId);
             return new Domain.ValueObjects.Citation(
                 Label: dto.Label,
@@ -100,9 +114,9 @@ public sealed class ChatService : IChatService
     {
         return reason switch
         {
-            GroundingReason.SourceDependentQuestionWithoutContext => 
+            GroundingReason.SourceDependentQuestionWithoutContext =>
                 "C\u00e2u h\u1ecfi c\u1ee7a b\u1ea1n ph\u1ee5 thu\u1ed9c v\u00e0o m\u1ed9t t\u00e0i li\u1ec7u nh\u01b0ng kh\u00f4ng c\u00f3 d\u1eef li\u1ec7u n\u00e0o kh\u1edbp \u0111\u01b0\u1ee3c t\u00ecm th\u1ea5y trong h\u1ec7 th\u1ed1ng.",
-            _ => 
+            _ =>
                 "T\u00e0i li\u1ec7u hi\u1ec7n c\u00f3 ch\u01b0a \u0111\u1ee7 th\u00f4ng tin \u0111\u1ec3 tr\u1ea3 l\u1eddi c\u00e2u h\u1ecfi n\u00e0y. B\u1ea1n vui l\u00f2ng import th\u00eam t\u00e0i li\u1ec7u li\u00ean quan \u0111\u1ebfn ch\u1ee7 \u0111\u1ec1 tr\u00ean."
         };
     }

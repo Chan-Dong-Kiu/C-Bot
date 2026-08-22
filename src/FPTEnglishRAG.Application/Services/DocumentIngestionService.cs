@@ -1,6 +1,8 @@
+using FPTEnglishRAG.Application.Abstractions;
 using FPTEnglishRAG.Application.Abstractions.Documents;
-using FPTEnglishRAG.Application.Abstractions.Embeddings;
 using FPTEnglishRAG.Application.Abstractions.Persistence;
+using FPTEnglishRAG.Application.Abstractions.RAG;
+using FPTEnglishRAG.Application.Configuration;
 using FPTEnglishRAG.Application.DTOs;
 using FPTEnglishRAG.Domain.Entities;
 using FPTEnglishRAG.Domain.Enums;
@@ -16,7 +18,9 @@ public class DocumentIngestionService : IDocumentIngestionService
     private readonly IChunkingService _chunker;
     private readonly IFileStorageService _fileStorage;
     private readonly IDocumentRepository _repository;
-    private readonly IEmbeddingService? _embeddingService;
+    private readonly IEmbeddingService _embeddingService;
+    private readonly IVectorStore _vectorStore;
+    private readonly VectorIndexOptions _vectorIndexOptions;
     private readonly ILogger<DocumentIngestionService>? _logger;
 
     public DocumentIngestionService(
@@ -26,7 +30,9 @@ public class DocumentIngestionService : IDocumentIngestionService
         IChunkingService chunker,
         IFileStorageService fileStorage,
         IDocumentRepository repository,
-        IEmbeddingService? embeddingService = null,
+        IEmbeddingService embeddingService,
+        IVectorStore vectorStore,
+        VectorIndexOptions vectorIndexOptions,
         ILogger<DocumentIngestionService>? logger = null)
     {
         _validator = validator;
@@ -36,6 +42,9 @@ public class DocumentIngestionService : IDocumentIngestionService
         _fileStorage = fileStorage;
         _repository = repository;
         _embeddingService = embeddingService;
+        _vectorStore = vectorStore;
+        _vectorIndexOptions = vectorIndexOptions;
+        _vectorIndexOptions.Validate();
         _logger = logger;
     }
 
@@ -195,14 +204,29 @@ public class DocumentIngestionService : IDocumentIngestionService
             await _repository.UpdateAsync(document, cancellationToken);
             progress?.Report(new IngestionProgressReport(document.Id, document.DisplayName, DocumentStatus.Embedding, 75, "Đang tạo vector embeddings..."));
 
-            if (_embeddingService != null)
+            var vectors = new List<float[]>(chunkEntities.Count);
+            foreach (DocumentChunk chunk in chunkEntities)
             {
-                var texts = chunkEntities.Select(c => c.Content).ToList();
-                await _embeddingService.GenerateEmbeddingsAsync(texts, cancellationToken);
+                vectors.Add(await _embeddingService.EmbedQueryAsync(chunk.Content, cancellationToken));
             }
+
+            ValidateVectors(chunkEntities, vectors);
 
             // 5. Lưu Chunks vào Database
             await _repository.SaveChunksAsync(document.Id, chunkEntities, cancellationToken);
+
+            for (int index = 0; index < chunkEntities.Count; index++)
+            {
+                float[] vector = vectors[index];
+                await _vectorStore.UpsertAsync(
+                    new VectorRecord(
+                        chunkEntities[index].Id,
+                        _vectorIndexOptions.EmbeddingModel,
+                        vector.Length,
+                        vector,
+                        _vectorIndexOptions.IndexVersion),
+                    cancellationToken);
+            }
 
             // 6. Đánh dấu hoàn tất (Ready)
             document.MarkReady();
@@ -214,10 +238,33 @@ public class DocumentIngestionService : IDocumentIngestionService
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Lỗi trong quá trình Ingestion cho tài liệu {DisplayName}", document.DisplayName);
-            document.MarkFailed(DocumentErrorCode.ExtractionFailed, ex.Message);
+            await _vectorStore.DeleteByDocumentIdAsync(document.Id, CancellationToken.None);
+            DocumentErrorCode errorCode = document.Status switch
+            {
+                DocumentStatus.Embedding => DocumentErrorCode.EmbeddingFailed,
+                DocumentStatus.Chunking => DocumentErrorCode.ChunkingFailed,
+                _ => DocumentErrorCode.ExtractionFailed
+            };
+            document.MarkFailed(errorCode, ex.Message);
             await _repository.UpdateAsync(document, CancellationToken.None);
             progress?.Report(new IngestionProgressReport(document.Id, document.DisplayName, DocumentStatus.Failed, 100, $"Xử lý thất bại: {ex.Message}"));
             return document;
+        }
+    }
+
+    private static void ValidateVectors(
+        IReadOnlyList<DocumentChunk> chunks,
+        IReadOnlyList<float[]> vectors)
+    {
+        if (vectors.Count != chunks.Count)
+        {
+            throw new InvalidOperationException("The embedding count must match the document chunk count.");
+        }
+
+        int dimensions = vectors.Count > 0 ? vectors[0].Length : 0;
+        if (dimensions <= 0 || vectors.Any(vector => vector.Length != dimensions))
+        {
+            throw new InvalidOperationException("All document embeddings must be non-empty and have equal dimensions.");
         }
     }
 }
