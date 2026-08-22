@@ -6,6 +6,13 @@
 # dotenv files
 .env
 
+# Local application settings and SQLite data
+appsettings.Local.json
+appsettings.*.local.json
+*.db
+*.sqlite
+*.sqlite3
+
 # User-specific files
 *.rsuser
 *.suo
