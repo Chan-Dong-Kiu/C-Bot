@@ -16,6 +16,15 @@ public partial class ChatViewModel : ObservableObject
 
     public ObservableCollection<ChatMessageViewModel> Messages { get; } = [];
 
+    public bool ShowWelcomeScreen => Messages.Count == 0;
+
+    public IReadOnlyList<string> SamplePrompts { get; } =
+    [
+        "• Cấu trúc câu điều kiện loại 2 dùng trong trường hợp nào và có ví dụ gì?",
+        "• Phân biệt thì Hiện tại Hoàn thành (Present Perfect) và Quá khứ Đơn (Past Simple)?",
+        "• Giải thích các dạng câu hỏi Reading comprehension thường gặp trong đề thi FPT?"
+    ];
+
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SendCommand))]
     private string _inputQuestion = string.Empty;
@@ -42,6 +51,11 @@ public partial class ChatViewModel : ObservableObject
         _chatService = chatService ?? throw new ArgumentNullException(nameof(chatService));
         _sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
 
+        Messages.CollectionChanged += (s, e) =>
+        {
+            OnPropertyChanged(nameof(ShowWelcomeScreen));
+        };
+
         RestoreSession();
     }
 
@@ -53,6 +67,15 @@ public partial class ChatViewModel : ObservableObject
         {
             Messages.Add(new ChatMessageViewModel(msg));
         }
+        OnPropertyChanged(nameof(ShowWelcomeScreen));
+    }
+
+    [RelayCommand]
+    private void UseSamplePrompt(string? prompt)
+    {
+        if (string.IsNullOrWhiteSpace(prompt) || IsBusy) return;
+        var cleanPrompt = prompt.TrimStart('•', ' ', '\t');
+        InputQuestion = cleanPrompt;
     }
 
     private bool CanSend() => !string.IsNullOrWhiteSpace(InputQuestion) && !IsBusy;

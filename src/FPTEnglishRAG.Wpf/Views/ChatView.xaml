@@ -18,6 +18,7 @@
         <conv:InverseBooleanToVisibilityConverter x:Key="InvBoolToVisConv" />
         <conv:NullToVisibilityConverter x:Key="NullToVisConv" />
         <conv:CountToVisibilityConverter x:Key="CountToVisConv" />
+        <conv:InverseCountToVisibilityConverter x:Key="InvCountToVisConv" />
     </UserControl.Resources>
 
     <Grid>
@@ -131,7 +132,7 @@
                         VerticalAlignment="Center"
                         MaxWidth="550"
                         Margin="24"
-                        Visibility="{Binding Messages.Count, Converter={StaticResource InvBoolToVisConv}}">
+                        Visibility="{Binding ShowWelcomeScreen, Converter={StaticResource BoolToVisConv}}">
                 <Border Width="56" Height="56"
                         Background="{StaticResource PrimaryMutedBrush}"
                         BorderBrush="{StaticResource PrimaryHoverBrush}"
@@ -176,17 +177,45 @@
                                    Foreground="{StaticResource PrimaryLightBrush}"
                                    Margin="0,0,0,10" />
 
-                        <TextBlock Text="• Cấu trúc câu điều kiện loại 2 dùng trong trường hợp nào và có ví dụ gì?"
-                                   FontSize="{StaticResource FontSizeSm}"
-                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                   Margin="0,0,0,6" />
-                        <TextBlock Text="• Phân biệt thì Hiện tại Hoàn thành (Present Perfect) và Quá khứ Đơn (Past Simple)?"
-                                   FontSize="{StaticResource FontSizeSm}"
-                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                   Margin="0,0,0,6" />
-                        <TextBlock Text="• Giải thích các dạng câu hỏi Reading comprehension thường gặp trong đề thi FPT?"
-                                   FontSize="{StaticResource FontSizeSm}"
-                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                        <ItemsControl ItemsSource="{Binding SamplePrompts}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Command="{Binding DataContext.UseSamplePromptCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                                            CommandParameter="{Binding}"
+                                            Cursor="Hand"
+                                            Margin="0,0,0,6"
+                                            HorizontalContentAlignment="Left">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Border x:Name="border"
+                                                                    Background="Transparent"
+                                                                    BorderBrush="Transparent"
+                                                                    BorderThickness="1"
+                                                                    CornerRadius="8"
+                                                                    Padding="10,8">
+                                                                <TextBlock Text="{Binding}"
+                                                                           FontSize="{StaticResource FontSizeSm}"
+                                                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                                                           TextWrapping="Wrap" />
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter TargetName="border" Property="Background" Value="{StaticResource PrimaryMutedBrush}" />
+                                                                    <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource PrimaryHoverBrush}" />
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </StackPanel>
                 </Border>
             </StackPanel>
@@ -262,6 +291,7 @@
                                                  IsReadOnly="True"
                                                  TextWrapping="Wrap"
                                                  BorderThickness="0"
+                                                 BorderBrush="Transparent"
                                                  Background="Transparent"
                                                  Foreground="{StaticResource TextPrimaryBrush}"
                                                  FontFamily="{StaticResource MainFontFamily}"

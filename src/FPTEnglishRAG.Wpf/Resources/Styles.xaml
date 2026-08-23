@@ -45,6 +45,7 @@
     <Style x:Key="PrimaryButton" TargetType="{x:Type Button}">
         <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
         <Setter Property="Foreground" Value="{StaticResource TextInverseBrush}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="FontFamily" Value="{StaticResource MainFontFamily}" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeBase}" />
         <Setter Property="FontWeight" Value="SemiBold" />
