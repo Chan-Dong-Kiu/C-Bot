@@ -422,6 +422,8 @@
                     <TextBox x:Name="QuestionTextBox"
                              Style="{StaticResource ModernInputTextBox}"
                              Text="{Binding InputQuestion, UpdateSourceTrigger=PropertyChanged}"
+                             AcceptsReturn="False"
+                             PreviewKeyDown="QuestionTextBox_PreviewKeyDown"
                              MinHeight="68" MaxHeight="140"
                              Padding="14,10,90,10"
                              VerticalContentAlignment="Top" />
