@@ -1,4 +1,4 @@
-﻿// File: src/FPTEnglishRAG.Infrastructure/AI/GeminiClient.cs
+// File: src/FPTEnglishRAG.Infrastructure/AI/GeminiClient.cs
 
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -108,7 +108,8 @@ internal sealed class GeminiClient : IGeminiClient
 
         var httpBody = new EmbedHttpRequest(
             Model: $"models/{request.Model}",
-            Content: new ContentItem([new Part(request.Content)]));
+            Content: new ContentItem([new Part(request.Content)]),
+            OutputDimensionality: 768);
 
         _logger.LogInformation(
             "Sending EmbedContent request. Model={Model}, ContentLength={ContentLength}",
@@ -209,7 +210,8 @@ internal sealed class GeminiClient : IGeminiClient
 
     private sealed record EmbedHttpRequest(
         [property: JsonPropertyName("model")] string Model,
-        [property: JsonPropertyName("content")] ContentItem Content);
+        [property: JsonPropertyName("content")] ContentItem Content,
+        [property: JsonPropertyName("outputDimensionality")] int? OutputDimensionality = 768);
 
     private sealed record ContentItem(
         [property: JsonPropertyName("parts")] IReadOnlyList<Part> Parts);
