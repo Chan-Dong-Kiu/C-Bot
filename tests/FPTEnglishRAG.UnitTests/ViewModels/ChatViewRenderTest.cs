@@ -51,7 +51,7 @@ public class ChatViewRenderTest
                 view.Arrange(new Rect(0, 0, 1000, 700));
                 view.UpdateLayout();
 
-                string artifactDir = @"C:\Users\Thu Nguyen\.gemini\antigravity-ide\brain\a2afc1be-3a22-4868-994c-6d8b6f1decc3";
+                string artifactDir = Path.Combine(Environment.CurrentDirectory, "TestScreenshots");
                 Directory.CreateDirectory(artifactDir);
 
                 // 1. Screenshot empty state
